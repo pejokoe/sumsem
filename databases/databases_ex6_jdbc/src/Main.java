@@ -13,7 +13,7 @@ public class Main {
 		
 		// Question 1 - Complete the connection parameters
 		// see the documentation for how to make a connection: https://bitbucket.org/xerial/sqlite-jdbc/wiki/Usage
-        conn = DriverManager.getConnection("???");
+        conn = DriverManager.getConnection("jdbc:sqlite:db/students.db");
         ResultSet rs;
         
         // Question 4 - Insert a student
@@ -37,7 +37,7 @@ public class Main {
 	
 	private static ResultSet getAllStudents() throws Exception{
 		  Statement stat = conn.createStatement();
-	      ResultSet rs = stat.executeQuery("???");
+	      ResultSet rs = stat.executeQuery("SELECT * FROM student");
 	      return rs;
 	}
 
