@@ -36,3 +36,13 @@ def calcRh(d, t):
 def formatDate(dataframe):
     dataframe["forecast_date"] = str(dataframe["time"]).split(" ")[0]
     dataframe["horizon"] = str(dataframe["time"]).split(" ")[1].split(":")[0]  + "hour"
+
+def interpolate(surface):
+    'linearly interpolate values for every full hour'
+    insert = 5
+    surface.index = range(0, len(surface) * insert, insert)
+    surInterpolated = surface.reindex(index=range(len(surface)*insert))
+    linInterpolated = surInterpolated["wind_direction", "wind_speed","t2m"].interpolate()
+    timeInterpolated = surInterpolated["time", "step", "valid_time"].interpolate(method="time")
+    surInterpolated = pd.concat(linInterpolated, timeInterpolated)
+    print(surInterpolated.head(10))
