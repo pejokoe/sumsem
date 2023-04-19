@@ -57,4 +57,5 @@ def splitInTwenty(surface):
         frames.append(surface[i*20:i*21+20:1])
     return frames
 
-# def createTrainingSet(frames):
+def accumulateTp(precip):
+    return precip.rolling(6).sum()
