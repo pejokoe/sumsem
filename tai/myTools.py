@@ -37,12 +37,24 @@ def formatDate(dataframe):
     dataframe["forecast_date"] = str(dataframe["time"]).split(" ")[0]
     dataframe["horizon"] = str(dataframe["time"]).split(" ")[1].split(":")[0]  + "hour"
 
-def interpolate(surface):
+def interpolate(frames):
     'linearly interpolate values for every full hour'
-    insert = 5
-    surface.index = range(0, len(surface) * insert, insert)
-    surInterpolated = surface.reindex(index=range(len(surface)*insert))
-    linInterpolated = surInterpolated["wind_direction", "wind_speed","t2m"].interpolate()
-    timeInterpolated = surInterpolated["time", "step", "valid_time"].interpolate(method="time")
-    surInterpolated = pd.concat(linInterpolated, timeInterpolated)
-    print(surInterpolated.head(10))
+    newFrames = []
+    for ele in frames:
+        insert = 6
+        ele.index = range(0, (len(ele)) * insert, insert)
+        ele = ele.reindex(index=range((len(ele)-1)*insert + 1))
+        ele = ele.interpolate()
+        newFrames.append(ele)
+    surInterpolated = pd.concat(newFrames, ignore_index=True)
+    print(surInterpolated.shape)
+    return surInterpolated
+
+def splitInTwenty(surface):
+
+    frames = []
+    for i in range(int(len(surface)/20)):
+        frames.append(surface[i*20:i*21+20:1])
+    return frames
+
+# def createTrainingSet(frames):
