@@ -59,3 +59,19 @@ def splitInTwenty(surface):
 
 def accumulateTp(precip):
     return precip.rolling(6).sum()
+
+def createTrainingSet(input, target):
+    oneTrainingInput=[]
+    oneTarget=[]
+    factor = 0
+    for frame in input:
+        for i in range(len(frame)-1):
+            if i > 0:
+                oneTrainingInput.append(list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i-1])
+                + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i])
+                + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i+1]))
+                time = frame.valid_time.iloc[i]
+                correctTarget = target[target.local_datetime == time][["temp", "wind_direction", "wind_speed", "precip_quantity_6hr"]]
+                oneTarget.append(list(correctTarget.iloc[0]))
+    trainingPoints = list(zip(oneTrainingInput, oneTarget))
+    print(trainingPoints[:10])

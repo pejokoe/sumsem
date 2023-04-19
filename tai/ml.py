@@ -26,19 +26,23 @@ allData = surface.drop(columns=["time", "step", "surface", "depthBelowLandLayer"
 
 allData = allData.reset_index(drop=True)
 allData.t2m = allData.t2m -273.15
+allData.tp6 = allData.tp6 * 1000
 print(allData[:10])
-allData = splitInTwenty(surface)
+allData = splitInTwenty(allData)
 
 #target data
 syn2017 = pd.read_csv("synop_2017_March_June.csv")
-syn2017 = syn2017.iloc[1::2]
-syn2017 = syn2017.reset_index(drop=True)
-syn2017["precip_quantity_6hr"] = accumulateTp(syn2017["precip_quantity_1hour"]).tolist()
-syn2017 = syn2017.drop(columns=["humidity_relative", "precip_quantity_1hour", "datetime", "name", "lat", "lon", "community_name"])
-syn2017 = syn2017[syn2017["local_datetime"].str.contains("00:00:00") | syn2017["local_datetime"].str.contains("06:00:00") |
-                  syn2017["local_datetime"].str.contains("12:00:00") | syn2017["local_datetime"].str.contains("18:00:00")]
-# syn2017 = syn2017[ syn2017.local_datetime]
-# trainingSet = createTrainingSet(allData)
+syn2018 = pd.read_csv("synop_2018_March_June.csv")
+synop = pd.concat([syn2017, syn2018], axis = 0)
+synop = synop.iloc[1::2]
+synop["precip_quantity_6hr"] = accumulateTp(synop["precip_quantity_1hour"]).tolist()
+synop = synop.drop(columns=["humidity_relative", "precip_quantity_1hour", "datetime", "name", "lat", "lon", "community_name"])
+synop = synop[synop["local_datetime"].str.contains("00:00:00") | synop["local_datetime"].str.contains("06:00:00") |
+                  synop["local_datetime"].str.contains("12:00:00") | synop["local_datetime"].str.contains("18:00:00")]
+synop = synop.reset_index(drop=True)
+print(synop.head(10))
+print(synop.tail(10))
+trainingSet = createTrainingSet(allData[:100], synop)
 # surInterpolated = interpolate(listOfFrames)
 # print(surInterpolated[-100:])
 # surInterpolated.to_csv("surInterpolated.csv")
