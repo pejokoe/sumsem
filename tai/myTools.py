@@ -54,24 +54,32 @@ def splitInTwenty(surface):
 
     frames = []
     for i in range(int(len(surface)/20)):
-        frames.append(surface[i*20:i*21+20:1])
+        frames.append(surface[i*20:i*20+20:1])
     return frames
 
 def accumulateTp(precip):
-    return precip.rolling(6).sum()
+    accumulated = pd.Series(precip.rolling(6).sum())
+    return accumulated
 
 def createTrainingSet(input, target):
     oneTrainingInput=[]
     oneTarget=[]
-    factor = 0
     for frame in input:
-        for i in range(len(frame)-1):
-            if i > 0:
+        for i in range(len(frame)):
+            if i > 0 and i < len(frame) - 1:
                 oneTrainingInput.append(list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i-1])
                 + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i])
                 + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i+1]))
-                time = frame.valid_time.iloc[i]
-                correctTarget = target[target.local_datetime == time][["temp", "wind_direction", "wind_speed", "precip_quantity_6hr"]]
-                oneTarget.append(list(correctTarget.iloc[0]))
-    trainingPoints = list(zip(oneTrainingInput, oneTarget))
-    print(trainingPoints[:10])
+            elif i == 0:
+                oneTrainingInput.append(list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i])
+                + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i])
+                + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i+1]))
+            else:
+                oneTrainingInput.append(list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i-1])
+                + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i])
+                + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i]))
+            time = frame.valid_time.iloc[i]
+            correctTarget = target[target.local_datetime == time][["temp", "wind_direction", "wind_speed", "precip_quantity_6hr"]]
+            oneTarget.append(list(correctTarget.iloc[0]))
+    return pd.DataFrame(list(zip(oneTrainingInput, oneTarget)), columns=["Input", "Target"])
+

@@ -1,51 +1,59 @@
 #!/usr/bin/python3
-
-import pandas as pd
-import numpy as np
-import math
 from myTools import *
-import sys
+from sklearn import tree
+from sklearn.model_selection import train_test_split
+from ast import literal_eval
+import matplotlib.pyplot as plt
 
-pd.set_option('display.max_columns', 500)
+# trainingSet = pd.read_csv("TrainingSetDONTTOUCH.csv")
+# trainingSet.dropna(inplace=True)
+# trainingSet = trainingSet[trainingSet.Target.str.contains("nan")==False]
+# trainingSet = trainingSet.reset_index()
+# input = trainingSet.Input.apply(literal_eval)
+# target = trainingSet.Target.apply(literal_eval)
+# input = np.array(input.tolist())
+# target = np.array(target.tolist())
+# np.savetxt("Input.csv", input, delimiter=",")
+# np.savetxt("Target.csv", target, delimiter=",")
+input = np.genfromtxt("Input.csv", delimiter=",")
+target = np.genfromtxt("Target.csv", delimiter=",")
+xTrain, xTest, yTrain, yTest = train_test_split(input, target, test_size=0.25, random_state = 0, shuffle=True)
 
-#training data
-precip = pd.read_csv("ECMWF_2017_2018_precip (1).csv")
-precip = precip[precip.number != 0]
-surface = pd.read_csv("ECMWF_2017_2018_surface.csv")
-surface = surface[surface.number != 0]
-surface = surface[surface.step != "0 days 00:00:00"]
-res = calcWind(surface["u10"], surface["v10"])
+rmse = {"temp":[], "wind":[], "precip":[]}
+start, end = 3, 17
+for depth in range(start, end):
+    temperatureTree = tree.DecisionTreeRegressor(max_depth=depth)
+    windTree = tree.DecisionTreeRegressor(max_depth=depth)
+    precipTree = tree.DecisionTreeRegressor(max_depth=depth)
+    temperatureTree.fit(xTrain, yTrain[:, 0])
+    windTree.fit(xTrain, yTrain[:, 2])
+    precipTree.fit(xTrain, yTrain[:, 3])
+    rmse["temp"].append(np.sqrt(np.mean((temperatureTree.predict(xTrain)-yTrain[:, 0])**2)))
+    rmse["temp"].append(np.sqrt(np.mean((temperatureTree.predict(xTest)-yTest[:, 0])**2)))
+    rmse["wind"].append(np.sqrt(np.mean((windTree.predict(xTrain)-yTrain[:, 2])**2)))
+    rmse["wind"].append(np.sqrt(np.mean((windTree.predict(xTest)-yTest[:, 2])**2)))
+    rmse["precip"].append(np.sqrt(np.mean((precipTree.predict(xTrain)-yTrain[:, 3])**2)))
+    rmse["precip"].append(np.sqrt(np.mean((precipTree.predict(xTest)-yTest[:, 3])**2)))
 
-precip.reset_index(drop=True)
-surface.reset_index(drop=True)
-surface["wind_direction"] = res[1].tolist()
-surface["wind_speed"] = res[0].tolist()
-surface["tp6"] = precip["tp6"].tolist()
-allData = surface.drop(columns=["time", "step", "surface", "depthBelowLandLayer", "cape", "cin", "sd", "stl1", "swvl1", "tcc", "tcw", "tcwv", "u10", "u100", "v10", "v100", "vis", "model_altitude", "model_land_usage", 
-              "model_latitude", "model_longitude", "model_orography"])
+fig, axis = plt.subplots(1, 3)
+axis[0].plot(range(start, end), rmse["temp"][::2])
+axis[0].plot(range(start, end), rmse["temp"][1::2])
+axis[0].set_title("Temperature")
+axis[0].set_xlabel("Depth of tree")
+axis[0].set_ylabel("RMSE")
 
-allData = allData.reset_index(drop=True)
-allData.t2m = allData.t2m -273.15
-allData.tp6 = allData.tp6 * 1000
-print(allData[:10])
-allData = splitInTwenty(allData)
+axis[1].plot(range(start, end), rmse["wind"][::2])
+axis[1].plot(range(start, end), rmse["wind"][1::2])
+axis[1].set_title("Wind speed")
+axis[1].set_xlabel("Depth of tree")
 
-#target data
-syn2017 = pd.read_csv("synop_2017_March_June.csv")
-syn2018 = pd.read_csv("synop_2018_March_June.csv")
-synop = pd.concat([syn2017, syn2018], axis = 0)
-synop = synop.iloc[1::2]
-synop["precip_quantity_6hr"] = accumulateTp(synop["precip_quantity_1hour"]).tolist()
-synop = synop.drop(columns=["humidity_relative", "precip_quantity_1hour", "datetime", "name", "lat", "lon", "community_name"])
-synop = synop[synop["local_datetime"].str.contains("00:00:00") | synop["local_datetime"].str.contains("06:00:00") |
-                  synop["local_datetime"].str.contains("12:00:00") | synop["local_datetime"].str.contains("18:00:00")]
-synop = synop.reset_index(drop=True)
-print(synop.head(10))
-print(synop.tail(10))
-trainingSet = createTrainingSet(allData[:100], synop)
-# surInterpolated = interpolate(listOfFrames)
-# print(surInterpolated[-100:])
-# surInterpolated.to_csv("surInterpolated.csv")
-# print(type(res[0]))
-# print(len(res[0]))
-# print(surface.head(10))
+axis[2].plot(range(start, end), rmse["precip"][::2])
+axis[2].plot(range(start, end), rmse["precip"][1::2])
+axis[2].set_title("Precipitation")
+axis[2].set_xlabel("Depth of tree")
+
+axis[0].grid()
+axis[1].grid()
+axis[2].grid()
+plt.savefig("trees.pdf", format="pdf", bbox_inches="tight")
+plt.show()
