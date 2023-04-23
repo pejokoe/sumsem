@@ -1,6 +1,12 @@
+#!/usr/bin/python3
 import numpy as np
 import pandas as pd
 import math 
+from sklearn import tree
+from sklearn.model_selection import train_test_split
+import pickle
+import matplotlib.pyplot as plt
+
 
 def calcAngle(o_leg, a_leg):
     if o_leg > 0 and a_leg > 0:
@@ -58,7 +64,7 @@ def splitInTwenty(surface):
     return frames
 
 def accumulateTp(precip):
-    accumulated = pd.Series(precip.rolling(6).sum())
+    accumulated = np.array(precip.rolling(6).sum())
     return accumulated
 
 def createTrainingSet(input, target):
@@ -79,7 +85,37 @@ def createTrainingSet(input, target):
                 + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i])
                 + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i]))
             time = frame.valid_time.iloc[i]
-            correctTarget = target[target.local_datetime == time][["temp", "wind_direction", "wind_speed", "precip_quantity_6hr"]]
+            correctTarget = target[target.datetime == time][["temp", "wind_direction", "wind_speed", "precip_quantity_6hr"]]
             oneTarget.append(list(correctTarget.iloc[0]))
     return pd.DataFrame(list(zip(oneTrainingInput, oneTarget)), columns=["Input", "Target"])
+
+def matchTraining(input):
+    sets = []
+    oneInput = []
+    for i in range(50):
+        sets.append(input[i::50])
+    for set in sets:
+        for i in range(len(set)):
+            if i > 0 and i < len(set) - 1:
+                oneInput.append(list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i-1])
+                + list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i])
+                + list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i+1]))
+            elif i == 0:
+                oneInput.append(list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i])
+                + list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i])
+                + list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i+1]))
+            else:
+                oneInput.append(list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i-1])
+                + list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i])
+                + list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i]))
+    return np.array(oneInput)
+
+def treeRegressor(input):
+    temperatureTree = pickle.load(open("TemperatureTree", "rb"))
+    windTree = pickle.load(open("WindTree", "rb"))
+    precipTree = pickle.load(open("PrecipTree", "rb"))
+    predTemp = temperatureTree.predict(input)
+    predWind = windTree.predict(input)
+    predPrecip = precipTree.predict(input)
+    return pd.DataFrame([predTemp, predWind, predPrecip], columns=["t2m", "wind", "precip"])
 
