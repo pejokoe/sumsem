@@ -117,5 +117,31 @@ def treeRegressor(input):
     predTemp = temperatureTree.predict(input)
     predWind = windTree.predict(input)
     predPrecip = precipTree.predict(input)
-    return pd.DataFrame([predTemp, predWind, predPrecip], columns=["t2m", "wind", "precip"])
+    predictions = pd.DataFrame(columns=["t2m", "wind", "precip"])
+    predictions["t2m"] = predTemp
+    predictions["wind"] = predWind
+    predictions["precip"] = predPrecip
+    return predictions
 
+def quantiles(predictions):
+    result = pd.DataFrame(columns=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"])
+    quants = [0.025, 0.25, 0.5, 0.75, 0.975]
+    for i in range(0, 20):
+        horizon = i * 6 + 6
+        quantsTimestepTemp = []
+        quantsTimestepWind = []
+        quantsTimestepPrecip = []
+        for quant in quants:
+            quantsTimestepTemp.append(np.quantile(predictions["t2m"][i::20], quant))
+            quantsTimestepWind.append(np.quantile(predictions["wind"][i::20], quant))
+            quantsTimestepPrecip.append(np.quantile(predictions["precip"][i::20], quant))
+        result = result.append(pd.Series(["2023-04-15", "t2m", str(horizon) + " hour", *quantsTimestepTemp], 
+                                         index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]),
+                                         ignore_index=True)
+        result = result.append(pd.Series(["2023-04-15", "wind", str(horizon) + " hour", *quantsTimestepWind], 
+                               index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]), 
+                               ignore_index=True)
+        result = result.append(pd.Series(["2023-04-15", "precip", str(horizon) + " hour", *quantsTimestepPrecip], 
+                               index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]), 
+                               ignore_index=True)
+    return result

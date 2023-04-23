@@ -11,4 +11,6 @@ input.drop(columns=["u10", "v10"], inplace=True)
 input = input[["t2m", "wind_direction", "wind_speed", "tp", "time"]]
 input = matchTraining(input)
 predictions = treeRegressor(input)
+quantiles = quantiles(predictions)
+quantiles.to_csv("20230415_JustinBieber.csv")
 print("done")
