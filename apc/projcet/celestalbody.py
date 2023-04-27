@@ -1,26 +1,31 @@
 import scipy.constants as constants
 import numpy as np
+MASS_SUN = 1.989e30
 # scipy constant implies use of meters as distance metric
 print(constants.G)
 class CelestalBody():
-    def __init__(self, radius, mass, x, y, v, a):
+    def __init__(self, name, mass, x, y):
+        self.name = name
         self.mass = mass
         self.x = x
         self.y = y
-        self.v = v
-        self.a = a
+        self.v = initVelocity(self)
+        self.a = 0
     
 
     def acceleration(allBodies):
         pass
 
 class Planet(CelestalBody):
-    def __init__(self, mass, x, y):
+    def __init__(self, name, mass, x, y):
         super().__init__(mass, x, y)
         moons = []
 
     def acceleration(self, allBodies):
         return acceleration(self, allBodies)
+    
+    def velocity(self):
+        pass
 
 
 def acceleration(caller, allBodies):
@@ -33,6 +38,8 @@ def acceleration(caller, allBodies):
             unitVectorY = (body.y - caller.y) / distance
             Force[0] += unitVectorX
             Force[1] += unitVectorY
-    Force = Force / caller.mass
-    return Force
+    caller.a = Force / caller.mass
 
+def initVelocity(Planet):
+    v0 = np.sqrt(2*constants.G*MASS_SUN*1/abs(Planet.x))
+    return v0
