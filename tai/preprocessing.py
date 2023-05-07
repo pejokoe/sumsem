@@ -22,7 +22,13 @@ allData = surface.drop(columns=["time", "step", "surface", "depthBelowLandLayer"
 allData = allData.reset_index(drop=True)
 allData.t2m = allData.t2m -273.15
 allData.tp6 = allData.tp6 * 1000
-# print(allData[:10])
+
+# normalize data using MinMaxScaler
+scaler = preprocessing.MinMaxScaler()
+print(allData.head())
+allData[["t2m", "wind_direction", "wind_speed", "tp6"]] = scaler.fit_transform(allData[["t2m", "wind_direction", "wind_speed", "tp6"]])
+print(allData.head())
+
 allData = splitInTwenty(allData)
 
 #target data

@@ -2,7 +2,7 @@
 from myTools import *
 
 
-data = pd.read_csv("Forecast_01_04_2023.csv")
+data = pd.read_csv("Forecast_29_04_2023.csv")
 
 data["wind"] =  calcWind(data["u10"], data["v10"])
 data["rh"] = calcRh(data["d2m"], data["t2m"])
@@ -38,7 +38,7 @@ for timePoint in timePoints:
     skipFirst = 1
 
 newDataFrame = pd.DataFrame.from_dict(newData)
-newDataFrame.to_csv("20230401_JustinBieber.csv")
+newDataFrame.to_csv("20230429_JustinBieber.csv")
         
 
 # quantiles = dict.fromkeys("forecast_date", "target", "horizon", "q0.025", 

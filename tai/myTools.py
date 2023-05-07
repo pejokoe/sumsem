@@ -4,6 +4,7 @@ import pandas as pd
 import math 
 from sklearn import tree
 from sklearn.model_selection import train_test_split
+from sklearn import preprocessing
 import pickle
 import matplotlib.pyplot as plt
 
@@ -70,19 +71,13 @@ def accumulateTp(precip):
 def createTrainingSet(input, target):
     oneTrainingInput=[]
     oneTarget=[]
+
     for frame in input:
         for i in range(len(frame)):
             if i > 0 and i < len(frame) - 1:
                 oneTrainingInput.append(list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i-1])
                 + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i])
                 + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i+1]))
-<<<<<<< HEAD
-                time = frame.valid_time.iloc[i]
-                correctTarget = target[target.local_datetime == time.replace("/", "-")][["temp", "wind_direction", "wind_speed", "precip_quantity_6hr"]]
-                oneTarget.append(list(correctTarget.iloc[0]))
-    trainingPoints = list(zip(oneTrainingInput, oneTarget))
-    print(trainingPoints[:10])
-=======
             elif i == 0:
                 oneTrainingInput.append(list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i])
                 + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i])
@@ -142,14 +137,13 @@ def quantiles(predictions):
             quantsTimestepTemp.append(np.quantile(predictions["t2m"][i::20], quant))
             quantsTimestepWind.append(np.quantile(predictions["wind"][i::20], quant))
             quantsTimestepPrecip.append(np.quantile(predictions["precip"][i::20], quant))
-        result = result.append(pd.Series(["2023-04-15", "t2m", str(horizon) + " hour", *quantsTimestepTemp], 
+        result = result.append(pd.Series(["2023-04-29", "t2m", str(horizon) + " hour", *quantsTimestepTemp], 
                                          index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]),
                                          ignore_index=True)
-        result = result.append(pd.Series(["2023-04-15", "wind", str(horizon) + " hour", *quantsTimestepWind], 
+        result = result.append(pd.Series(["2023-04-29", "wind", str(horizon) + " hour", *quantsTimestepWind], 
                                index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]), 
                                ignore_index=True)
-        result = result.append(pd.Series(["2023-04-15", "precip", str(horizon) + " hour", *quantsTimestepPrecip], 
+        result = result.append(pd.Series(["2023-04-29", "precip", str(horizon) + " hour", *quantsTimestepPrecip], 
                                index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]), 
                                ignore_index=True)
     return result
->>>>>>> b05277f44081395996f86d5b67aa959a199f6fc4
