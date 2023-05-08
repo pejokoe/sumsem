@@ -6,6 +6,7 @@ from sklearn import tree
 from sklearn.model_selection import train_test_split, KFold, cross_val_score
 from sklearn import preprocessing
 from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import RandomForestRegressor
 import pickle
 import matplotlib.pyplot as plt
 
@@ -69,7 +70,7 @@ def accumulateTp(precip):
     accumulated = np.array(precip.rolling(6).sum())
     return accumulated
 
-def createTrainingSet(input, target):
+def createTrainingSetTimeSeries(input, target):
     oneTrainingInput=[]
     oneTarget=[]
 
@@ -87,6 +88,17 @@ def createTrainingSet(input, target):
                 oneTrainingInput.append(list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i-1])
                 + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i])
                 + list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i]))
+            time = frame.valid_time.iloc[i]
+            correctTarget = target[target.datetime == time][["temp", "wind_direction", "wind_speed", "precip_quantity_6hr"]]
+            oneTarget.append(list(correctTarget.iloc[0]))
+    return pd.DataFrame(list(zip(oneTrainingInput, oneTarget)), columns=["Input", "Target"])
+
+def createTrainingSet(input, target):
+    oneTrainingInput=[]
+    oneTarget=[]
+    for frame in input:
+        for i in range(len(frame)):
+            oneTrainingInput.append(list(frame[["t2m", "wind_direction", "wind_speed", "tp6"]].iloc[i]))
             time = frame.valid_time.iloc[i]
             correctTarget = target[target.datetime == time][["temp", "wind_direction", "wind_speed", "precip_quantity_6hr"]]
             oneTarget.append(list(correctTarget.iloc[0]))
@@ -149,19 +161,26 @@ def quantiles(predictions):
                                ignore_index=True)
     return result
 
-def validation(model, input, target):
+def cross_validation(model, input, target):
     'Function for k-fold cross validation, returns training and validation rmse'
     kf = KFold(5, shuffle = True, random_state = 0)
-    rsme = [[], []]
+    rmse = [[], []]
     for train_ind, val_ind in kf.split(input, target):
         model.fit(input[train_ind], target[train_ind])
-        rsme[0].append(mean_squared_error(model.predict(input[train_ind]), target[train_ind])**0.5)
-        rsme[1].append(mean_squared_error(model.predict(input[val_ind]), target[val_ind])**0.5)
-    return [np.mean(rsme[0]), np.mean(rsme[1])]
+        rmse[0].append(mean_squared_error(model.predict(input[train_ind]), target[train_ind])**0.5)
+        rmse[1].append(mean_squared_error(model.predict(input[val_ind]), target[val_ind])**0.5)
+    return [np.mean(rmse[0]), np.mean(rmse[1])]
 
-def trees(parameters, xTrain, yTrain):
-    start = parameters[0]
-    end = parameters[1]
+def validation(model, input, target):
+    xTrain, xVal, yTrain, yVal = train_test_split(input, target, test_size=0.2, random_state = 0, shuffle=True)
+    model.fit(xTrain, yTrain)
+    rmse_train = mean_squared_error(model.predict(xTrain), yTrain)**0.5
+    rmse_val = mean_squared_error(model.predict(xVal), yVal)**0.5
+    return [rmse_train, rmse_val]
+
+def trees(xTrain, yTrain):
+    start = 5
+    end = 15
     temp = []
     wind = []
     precip = []
@@ -169,9 +188,9 @@ def trees(parameters, xTrain, yTrain):
         temperatureTree = tree.DecisionTreeRegressor(max_depth=depth)
         windTree = tree.DecisionTreeRegressor(max_depth=depth)
         precipTree = tree.DecisionTreeRegressor(max_depth=depth)
-        temp.extend(validation(temperatureTree, xTrain, yTrain[:, 0]))
-        wind.extend(validation(windTree, xTrain, yTrain[:, 2]))
-        precip.extend(validation(precipTree, xTrain, yTrain[:, 3]))
+        temp.extend(cross_validation(temperatureTree, xTrain, yTrain[:, 0]))
+        wind.extend(cross_validation(windTree, xTrain, yTrain[:, 2]))
+        precip.extend(cross_validation(precipTree, xTrain, yTrain[:, 3]))
     fig, axis = plt.subplots(1, 3)
     axis[0].plot(range(start, end), temp[::2])
     axis[0].plot(range(start, end), temp[1::2])
@@ -188,6 +207,42 @@ def trees(parameters, xTrain, yTrain):
     axis[2].plot(range(start, end), precip[1::2])
     axis[2].set_title("Precipitation")
     axis[2].set_xlabel("Depth of tree")
+
+    axis[0].grid()
+    axis[1].grid()
+    axis[2].grid()
+    plt.savefig("test.pdf", format="pdf", bbox_inches="tight")
+    plt.show()
+
+def randomForest(xTrain, yTrain):
+    start = 5
+    end = 100
+    temp = []
+    wind = []
+    precip = []
+    for number_trees in range(start, end, 10):
+        temperatureTree = RandomForestRegressor(number_trees, max_depth=11)
+        windTree = RandomForestRegressor(number_trees, max_depth=13)
+        precipTree = RandomForestRegressor(number_trees, max_depth=7)
+        temp.extend(validation(temperatureTree, xTrain, yTrain[:, 0]))
+        wind.extend(validation(windTree, xTrain, yTrain[:, 2]))
+        precip.extend(validation(precipTree, xTrain, yTrain[:, 3]))
+    fig, axis = plt.subplots(1, 3)
+    axis[0].plot(range(start, end, 5), temp[::2])
+    axis[0].plot(range(start, end, 5), temp[1::2])
+    axis[0].set_title("Temperature")
+    axis[0].set_xlabel("Number of trees")
+    axis[0].set_ylabel("RMSE")
+
+    axis[1].plot(range(start, end, 5), wind[::2])
+    axis[1].plot(range(start, end, 5), wind[1::2])
+    axis[1].set_title("Wind speed")
+    axis[1].set_xlabel("Number of trees")
+
+    axis[2].plot(range(start, end, 5), precip[::2])
+    axis[2].plot(range(start, end, 5), precip[1::2])
+    axis[2].set_title("Precipitation")
+    axis[2].set_xlabel("Number of trees")
 
     axis[0].grid()
     axis[1].grid()

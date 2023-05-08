@@ -14,8 +14,8 @@ target = np.genfromtxt("Target.csv", delimiter=",")
 xTrain, xTest, yTrain, yTest = train_test_split(input, target, test_size=0.1, random_state = 0, shuffle=True)
 
 start, end = 5, 15
-trees([start, end], xTrain, yTrain)
-
+# trees([start, end], xTrain, yTrain)
+randomForest(xTrain, yTrain)
 # bestTree = [[], [], []]
 # for depth in range(start, end):
 #     temperatureTree = tree.DecisionTreeRegressor(max_depth=depth)

@@ -42,6 +42,7 @@ synop = synop.drop(columns=["humidity_relative", "precip_quantity_1hour", "local
 synop = synop[synop["datetime"].str.contains("00:00:00") | synop["datetime"].str.contains("06:00:00") |
                   synop["datetime"].str.contains("12:00:00") | synop["datetime"].str.contains("18:00:00")]
 synop = synop.reset_index(drop=True)
+# trainingSet = createTrainingSetTimeSeries(allData, synop)
 trainingSet = createTrainingSet(allData, synop)
 trainingSet.to_csv("TrainingSet.csv")
 
