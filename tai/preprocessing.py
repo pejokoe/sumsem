@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from myTools import *
+from ast import literal_eval
 
 pd.set_option('display.max_columns', 500)
 
@@ -43,6 +44,18 @@ synop = synop[synop["datetime"].str.contains("00:00:00") | synop["datetime"].str
 synop = synop.reset_index(drop=True)
 trainingSet = createTrainingSet(allData, synop)
 trainingSet.to_csv("TrainingSet.csv")
+
+# number format from string format
+trainingSet = pd.read_csv("TrainingSet.csv")
+trainingSet.dropna(inplace=True)
+trainingSet = trainingSet[trainingSet.Target.str.contains("nan")==False]
+trainingSet = trainingSet.reset_index()
+input = trainingSet.Input.apply(literal_eval)
+target = trainingSet.Target.apply(literal_eval)
+input = np.array(input.tolist())
+target = np.array(target.tolist())
+np.savetxt("Input.csv", input, delimiter=",")
+np.savetxt("Target.csv", target, delimiter=",")
 # print(type(res[0]))
 # print(len(res[0]))
 # print(surface.head(10))

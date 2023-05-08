@@ -3,8 +3,9 @@ import numpy as np
 import pandas as pd
 import math 
 from sklearn import tree
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold, cross_val_score
 from sklearn import preprocessing
+from sklearn.metrics import mean_squared_error
 import pickle
 import matplotlib.pyplot as plt
 
@@ -147,3 +148,49 @@ def quantiles(predictions):
                                index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]), 
                                ignore_index=True)
     return result
+
+def validation(model, input, target):
+    'Function for k-fold cross validation, returns training and validation rmse'
+    kf = KFold(5, shuffle = True, random_state = 0)
+    rsme = [[], []]
+    for train_ind, val_ind in kf.split(input, target):
+        model.fit(input[train_ind], target[train_ind])
+        rsme[0].append(mean_squared_error(model.predict(input[train_ind]), target[train_ind])**0.5)
+        rsme[1].append(mean_squared_error(model.predict(input[val_ind]), target[val_ind])**0.5)
+    return [np.mean(rsme[0]), np.mean(rsme[1])]
+
+def trees(parameters, xTrain, yTrain):
+    start = parameters[0]
+    end = parameters[1]
+    temp = []
+    wind = []
+    precip = []
+    for depth in range(start, end):
+        temperatureTree = tree.DecisionTreeRegressor(max_depth=depth)
+        windTree = tree.DecisionTreeRegressor(max_depth=depth)
+        precipTree = tree.DecisionTreeRegressor(max_depth=depth)
+        temp.extend(validation(temperatureTree, xTrain, yTrain[:, 0]))
+        wind.extend(validation(windTree, xTrain, yTrain[:, 2]))
+        precip.extend(validation(precipTree, xTrain, yTrain[:, 3]))
+    fig, axis = plt.subplots(1, 3)
+    axis[0].plot(range(start, end), temp[::2])
+    axis[0].plot(range(start, end), temp[1::2])
+    axis[0].set_title("Temperature")
+    axis[0].set_xlabel("Depth of tree")
+    axis[0].set_ylabel("RMSE")
+
+    axis[1].plot(range(start, end), wind[::2])
+    axis[1].plot(range(start, end), wind[1::2])
+    axis[1].set_title("Wind speed")
+    axis[1].set_xlabel("Depth of tree")
+
+    axis[2].plot(range(start, end), precip[::2])
+    axis[2].plot(range(start, end), precip[1::2])
+    axis[2].set_title("Precipitation")
+    axis[2].set_xlabel("Depth of tree")
+
+    axis[0].grid()
+    axis[1].grid()
+    axis[2].grid()
+    plt.savefig("test.pdf", format="pdf", bbox_inches="tight")
+    plt.show()
