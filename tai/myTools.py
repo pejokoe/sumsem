@@ -133,12 +133,26 @@ def matchTraining(input):
 
 def treeRegressor(input):
     'loading and applying best tree model during inference'
-    temperatureTree = pickle.load(open("TemperatureTree", "rb"))
-    windTree = pickle.load(open("WindTree", "rb"))
-    precipTree = pickle.load(open("PrecipTree", "rb"))
+    temperatureTree = pickle.load(open("tempTree", "rb"))
+    windTree = pickle.load(open("windTree", "rb"))
+    precipTree = pickle.load(open("precipTree", "rb"))
     predTemp = temperatureTree.predict(input)
     predWind = windTree.predict(input)
     predPrecip = precipTree.predict(input)
+    predictions = pd.DataFrame(columns=["t2m", "wind", "precip"])
+    predictions["t2m"] = predTemp
+    predictions["wind"] = predWind
+    predictions["precip"] = predPrecip
+    return predictions
+
+def forestRegressor(input):
+    'loading and applying best forest model during inference'
+    tempForest = pickle.load(open("tempForest", "rb"))
+    windForest = pickle.load(open("windForest", "rb"))
+    precipForest = pickle.load(open("precipForest", "rb"))
+    predTemp = tempForest.predict(input)
+    predWind = windForest.predict(input)
+    predPrecip = precipForest.predict(input)
     predictions = pd.DataFrame(columns=["t2m", "wind", "precip"])
     predictions["t2m"] = predTemp
     predictions["wind"] = predWind
@@ -225,7 +239,7 @@ def trees(xTrain, yTrain):
     plt.show()
     # best trees
     # temp: 11
-    # ind: 13
+    # wind: 13
     # precip: 7
 
 def randomForest(xTrain, yTrain):
@@ -264,6 +278,9 @@ def randomForest(xTrain, yTrain):
     axis[2].grid()
     plt.savefig("randomForest.pdf", format="pdf", bbox_inches="tight")
     plt.show()
+    # temp 75
+    # wind 85
+    # precip 35
 
 def neuralNet(xTrain, yTrain):
     'experimental setup to find the best neural net architecture'
@@ -278,14 +295,16 @@ def neuralNet(xTrain, yTrain):
     fig, axis = plt.subplots(2, len(dimensions))
     for i in range(len(dimensions)):
         axis[i, 0].plot(losses[i])
-        axis[i, 0].set_title("Loss Architecture #" + i)
+        axis[i, 0].set_title(f"Loss Architecture #{i}")
         axis[i, 0].set_xlabel("Iterations")
         axis[i, 0].set_ylabel("RMSE")
         axis[i, 0].grid()
-        axis[i, 1].plot(losses[i])
-        axis[i, 1].set_title("Validation score Architecture #" + i)
+        axis[i, 1].plot(validation[i])
+        axis[i, 1].set_title(f"Validation score Architecture #{i}")
         axis[i, 1].set_xlabel("Iterations")
         axis[i, 1].set_ylabel("R2 score")
         axis[i, 1].grid()
     plt.savefig("neuralNet.pdf", format="pdf")
     plt.show()
+    # second architecture performs better
+    # stopping at 18 iterations
