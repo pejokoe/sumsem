@@ -269,16 +269,23 @@ def neuralNet(xTrain, yTrain):
     'experimental setup to find the best neural net architecture'
     dimensions = [[8], [9, 6]]
     losses = []
+    validation = []
     for dimension in dimensions:
-        neuralNet = MLPRegressor(dimension)
+        neuralNet = MLPRegressor(dimension, early_stopping=True)
         neuralNet.fit(xTrain, yTrain[:, [0, 2, 3]])
-        losses.append(list(map(lambda x: x**0.5, neuralNet.loss_curve_)))   
-    fig, axis = plt.subplots(1, len(dimensions))
+        losses.append(list(map(lambda x: x**0.5, neuralNet.loss_curve_))) 
+        validation.append(neuralNet.validation_scores_)  
+    fig, axis = plt.subplots(2, len(dimensions))
     for i in range(len(dimensions)):
-        axis[i].plot(losses[0])
-        axis[i].set_title("Loss Architecture #" + i)
-        axis[i].set_xlabel("Iterations")
-        axis[i].set_ylabel("RMSE")
-        axis[i].grid()
+        axis[i, 0].plot(losses[i])
+        axis[i, 0].set_title("Loss Architecture #" + i)
+        axis[i, 0].set_xlabel("Iterations")
+        axis[i, 0].set_ylabel("RMSE")
+        axis[i, 0].grid()
+        axis[i, 1].plot(losses[i])
+        axis[i, 1].set_title("Validation score Architecture #" + i)
+        axis[i, 1].set_xlabel("Iterations")
+        axis[i, 1].set_ylabel("R2 score")
+        axis[i, 1].grid()
     plt.savefig("neuralNet.pdf", format="pdf")
     plt.show()
