@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 
 def calcAngle(o_leg, a_leg):
+    'calculate wind angle from u_10 and v_10 data'
     if o_leg > 0 and a_leg > 0:
         o_leg = abs(o_leg)
         a_leg = abs(a_leg)
@@ -33,6 +34,7 @@ def calcAngle(o_leg, a_leg):
         return 360 - math.degrees(math.atan(o_leg / a_leg))
 
 def calcWind(u, v):
+    'calculate wind speed from u_10 and v_10 data'
     speed = np.array((u * u + v * v).pow(0.5))
     helper = np.vectorize(calcAngle)
     direction = helper(u, v)
@@ -60,17 +62,19 @@ def interpolate(frames):
     return surInterpolated
 
 def splitInTwenty(surface):
-
+    'split data into packs of twenty, separating the 50 ensembles'
     frames = []
     for i in range(int(len(surface)/20)):
         frames.append(surface[i*20:i*20+20:1])
     return frames
 
 def accumulateTp(precip):
+    'accumulate synop precipitation to match 6hr format'
     accumulated = np.array(precip.rolling(6).sum())
     return accumulated
 
 def createTrainingSetTimeSeries(input, target):
+    'create data frame with training data points consisting of time series of three'
     oneTrainingInput=[]
     oneTarget=[]
 
@@ -94,6 +98,7 @@ def createTrainingSetTimeSeries(input, target):
     return pd.DataFrame(list(zip(oneTrainingInput, oneTarget)), columns=["Input", "Target"])
 
 def createTrainingSet(input, target):
+    'create dataframe with training data points'
     oneTrainingInput=[]
     oneTarget=[]
     for frame in input:
@@ -126,6 +131,7 @@ def matchTraining(input):
     return np.array(oneInput)
 
 def treeRegressor(input):
+    'loading and applying best tree model during inference'
     temperatureTree = pickle.load(open("TemperatureTree", "rb"))
     windTree = pickle.load(open("WindTree", "rb"))
     precipTree = pickle.load(open("PrecipTree", "rb"))
@@ -139,6 +145,7 @@ def treeRegressor(input):
     return predictions
 
 def quantiles(predictions):
+    'calculate quantiles for desired output during inference'
     result = pd.DataFrame(columns=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"])
     quants = [0.025, 0.25, 0.5, 0.75, 0.975]
     for i in range(0, 20):
@@ -162,7 +169,7 @@ def quantiles(predictions):
     return result
 
 def cross_validation(model, input, target):
-    'Function for k-fold cross validation, returns training and validation rmse'
+    'perform k-fold cross validation, return training and validation rmse'
     kf = KFold(5, shuffle = True, random_state = 0)
     rmse = [[], []]
     for train_ind, val_ind in kf.split(input, target):
@@ -172,6 +179,7 @@ def cross_validation(model, input, target):
     return [np.mean(rmse[0]), np.mean(rmse[1])]
 
 def validation(model, input, target):
+    'perform validation of a model, return training and validation rmse'
     xTrain, xVal, yTrain, yVal = train_test_split(input, target, test_size=0.2, random_state = 0, shuffle=True)
     model.fit(xTrain, yTrain)
     rmse_train = mean_squared_error(model.predict(xTrain), yTrain)**0.5
@@ -179,6 +187,7 @@ def validation(model, input, target):
     return [rmse_train, rmse_val]
 
 def trees(xTrain, yTrain):
+    'experimental setup to find the best depth for the tree of all three target variables'
     start = 5
     end = 15
     temp = []
@@ -213,8 +222,13 @@ def trees(xTrain, yTrain):
     axis[2].grid()
     plt.savefig("test.pdf", format="pdf", bbox_inches="tight")
     plt.show()
+    # best trees
+    # temp: 11
+    # ind: 13
+    # precip: 7
 
 def randomForest(xTrain, yTrain):
+    'experimental setup to find the best number of trees in the forest for all three target variables'
     start = 5
     end = 100
     temp = []
@@ -228,24 +242,24 @@ def randomForest(xTrain, yTrain):
         wind.extend(validation(windTree, xTrain, yTrain[:, 2]))
         precip.extend(validation(precipTree, xTrain, yTrain[:, 3]))
     fig, axis = plt.subplots(1, 3)
-    axis[0].plot(range(start, end, 5), temp[::2])
-    axis[0].plot(range(start, end, 5), temp[1::2])
+    axis[0].plot(range(start, end, 10), temp[::2])
+    axis[0].plot(range(start, end, 10), temp[1::2])
     axis[0].set_title("Temperature")
     axis[0].set_xlabel("Number of trees")
     axis[0].set_ylabel("RMSE")
 
-    axis[1].plot(range(start, end, 5), wind[::2])
-    axis[1].plot(range(start, end, 5), wind[1::2])
+    axis[1].plot(range(start, end, 10), wind[::2])
+    axis[1].plot(range(start, end, 10), wind[1::2])
     axis[1].set_title("Wind speed")
     axis[1].set_xlabel("Number of trees")
 
-    axis[2].plot(range(start, end, 5), precip[::2])
-    axis[2].plot(range(start, end, 5), precip[1::2])
+    axis[2].plot(range(start, end, 10), precip[::2])
+    axis[2].plot(range(start, end, 10), precip[1::2])
     axis[2].set_title("Precipitation")
     axis[2].set_xlabel("Number of trees")
 
     axis[0].grid()
     axis[1].grid()
     axis[2].grid()
-    plt.savefig("test.pdf", format="pdf", bbox_inches="tight")
+    plt.savefig("randomForest.pdf", format="pdf", bbox_inches="tight")
     plt.show()
