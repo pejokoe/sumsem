@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split, KFold, cross_val_score
 from sklearn import preprocessing
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.neural_network import MLPRegressor
 import pickle
 import matplotlib.pyplot as plt
 
@@ -235,12 +236,12 @@ def randomForest(xTrain, yTrain):
     wind = []
     precip = []
     for number_trees in range(start, end, 10):
-        temperatureTree = RandomForestRegressor(number_trees, max_depth=11)
-        windTree = RandomForestRegressor(number_trees, max_depth=13)
-        precipTree = RandomForestRegressor(number_trees, max_depth=7)
-        temp.extend(validation(temperatureTree, xTrain, yTrain[:, 0]))
-        wind.extend(validation(windTree, xTrain, yTrain[:, 2]))
-        precip.extend(validation(precipTree, xTrain, yTrain[:, 3]))
+        tempForest = RandomForestRegressor(number_trees, max_depth=11)
+        windForest = RandomForestRegressor(number_trees, max_depth=13)
+        precipForest = RandomForestRegressor(number_trees, max_depth=7)
+        temp.extend(validation(tempForest, xTrain, yTrain[:, 0]))
+        wind.extend(validation(windForest, xTrain, yTrain[:, 2]))
+        precip.extend(validation(precipForest, xTrain, yTrain[:, 3]))
     fig, axis = plt.subplots(1, 3)
     axis[0].plot(range(start, end, 10), temp[::2])
     axis[0].plot(range(start, end, 10), temp[1::2])
@@ -262,4 +263,22 @@ def randomForest(xTrain, yTrain):
     axis[1].grid()
     axis[2].grid()
     plt.savefig("randomForest.pdf", format="pdf", bbox_inches="tight")
+    plt.show()
+
+def neuralNet(xTrain, yTrain):
+    'experimental setup to find the best neural net architecture'
+    dimensions = [[8], [9, 6]]
+    losses = []
+    for dimension in dimensions:
+        neuralNet = MLPRegressor(dimension)
+        neuralNet.fit(xTrain, yTrain[:, [0, 2, 3]])
+        losses.append(list(map(lambda x: x**0.5, neuralNet.loss_curve_)))   
+    fig, axis = plt.subplots(1, len(dimensions))
+    for i in range(len(dimensions)):
+        axis[i].plot(losses[0])
+        axis[i].set_title("Loss Architecture #" + i)
+        axis[i].set_xlabel("Iterations")
+        axis[i].set_ylabel("RMSE")
+        axis[i].grid()
+    plt.savefig("neuralNet.pdf", format="pdf")
     plt.show()
