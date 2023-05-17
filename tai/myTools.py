@@ -111,6 +111,7 @@ def createTrainingSet(input, target):
     return pd.DataFrame(list(zip(oneTrainingInput, oneTarget)), columns=["Input", "Target"])
 
 def matchTraining(input):
+    'match inference input data with training data'
     sets = []
     oneInput = []
     for i in range(50):
@@ -129,7 +130,7 @@ def matchTraining(input):
                 oneInput.append(list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i-1])
                 + list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i])
                 + list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i]))
-    return np.array(oneInput)
+    return pd.DataFrame(oneInput)
 
 def treeRegressor(input):
     'loading and applying best tree model during inference'
@@ -151,6 +152,8 @@ def forestRegressor(input):
     windForest = pickle.load(open("windForest", "rb"))
     precipForest = pickle.load(open("precipForest", "rb"))
     predTemp = tempForest.predict(input)
+    print(predTemp[::20])
+    print(len(predTemp[::20]))
     predWind = windForest.predict(input)
     predPrecip = precipForest.predict(input)
     predictions = pd.DataFrame(columns=["t2m", "wind", "precip"])
@@ -172,13 +175,13 @@ def quantiles(predictions):
             quantsTimestepTemp.append(np.quantile(predictions["t2m"][i::20], quant))
             quantsTimestepWind.append(np.quantile(predictions["wind"][i::20], quant))
             quantsTimestepPrecip.append(np.quantile(predictions["precip"][i::20], quant))
-        result = result.append(pd.Series(["2023-04-29", "t2m", str(horizon) + " hour", *quantsTimestepTemp], 
+        result = result.append(pd.Series(["2023-05-06", "t2m", str(horizon) + " hour", *quantsTimestepTemp], 
                                          index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]),
                                          ignore_index=True)
-        result = result.append(pd.Series(["2023-04-29", "wind", str(horizon) + " hour", *quantsTimestepWind], 
+        result = result.append(pd.Series(["2023-05-06", "wind", str(horizon) + " hour", *quantsTimestepWind], 
                                index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]), 
                                ignore_index=True)
-        result = result.append(pd.Series(["2023-04-29", "precip", str(horizon) + " hour", *quantsTimestepPrecip], 
+        result = result.append(pd.Series(["2023-05-06", "precip", str(horizon) + " hour", *quantsTimestepPrecip], 
                                index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]), 
                                ignore_index=True)
     return result
@@ -212,9 +215,9 @@ def trees(xTrain, yTrain):
         temperatureTree = tree.DecisionTreeRegressor(max_depth=depth)
         windTree = tree.DecisionTreeRegressor(max_depth=depth)
         precipTree = tree.DecisionTreeRegressor(max_depth=depth)
-        temp.extend(cross_validation(temperatureTree, xTrain, yTrain[:, 0]))
-        wind.extend(cross_validation(windTree, xTrain, yTrain[:, 2]))
-        precip.extend(cross_validation(precipTree, xTrain, yTrain[:, 3]))
+        temp.extend(cross_validation(temperatureTree, xTrain, yTrain[[0]]))
+        wind.extend(cross_validation(windTree, xTrain, yTrain[[2]]))
+        precip.extend(cross_validation(precipTree, xTrain, yTrain[[3]]))
     fig, axis = plt.subplots(1, 3)
     axis[0].plot(range(start, end), temp[::2])
     axis[0].plot(range(start, end), temp[1::2])
@@ -253,9 +256,9 @@ def randomForest(xTrain, yTrain):
         tempForest = RandomForestRegressor(number_trees, max_depth=11)
         windForest = RandomForestRegressor(number_trees, max_depth=13)
         precipForest = RandomForestRegressor(number_trees, max_depth=7)
-        temp.extend(validation(tempForest, xTrain, yTrain[:, 0]))
-        wind.extend(validation(windForest, xTrain, yTrain[:, 2]))
-        precip.extend(validation(precipForest, xTrain, yTrain[:, 3]))
+        temp.extend(validation(tempForest, xTrain, yTrain[[0]]))
+        wind.extend(validation(windForest, xTrain, yTrain[[2]]))
+        precip.extend(validation(precipForest, xTrain, yTrain[[3]]))
     fig, axis = plt.subplots(1, 3)
     axis[0].plot(range(start, end, 10), temp[::2])
     axis[0].plot(range(start, end, 10), temp[1::2])
@@ -289,7 +292,7 @@ def neuralNet(xTrain, yTrain):
     validation = []
     for dimension in dimensions:
         neuralNet = MLPRegressor(dimension, early_stopping=True)
-        neuralNet.fit(xTrain, yTrain[:, [0, 2, 3]])
+        neuralNet.fit(xTrain, yTrain[[0, 2, 3]])
         losses.append(list(map(lambda x: x**0.5, neuralNet.loss_curve_))) 
         validation.append(neuralNet.validation_scores_)  
     fig, axis = plt.subplots(2, len(dimensions))
