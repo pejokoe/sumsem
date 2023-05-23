@@ -8,6 +8,7 @@ from sklearn import preprocessing
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
+from sklearn.linear_model import BayesianRidge
 import pickle
 import matplotlib.pyplot as plt
 
@@ -111,6 +112,7 @@ def createTrainingSet(input, target):
     return pd.DataFrame(list(zip(oneTrainingInput, oneTarget)), columns=["Input", "Target"])
 
 def matchTraining(input):
+    'match inference input data with training data'
     sets = []
     oneInput = []
     for i in range(50):
@@ -129,7 +131,7 @@ def matchTraining(input):
                 oneInput.append(list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i-1])
                 + list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i])
                 + list(set[["t2m", "wind_direction", "wind_speed", "tp"]].iloc[i]))
-    return np.array(oneInput)
+    return pd.DataFrame(oneInput)
 
 def treeRegressor(input):
     'loading and applying best tree model during inference'
@@ -151,6 +153,8 @@ def forestRegressor(input):
     windForest = pickle.load(open("windForest", "rb"))
     precipForest = pickle.load(open("precipForest", "rb"))
     predTemp = tempForest.predict(input)
+    print(predTemp[::20])
+    print(len(predTemp[::20]))
     predWind = windForest.predict(input)
     predPrecip = precipForest.predict(input)
     predictions = pd.DataFrame(columns=["t2m", "wind", "precip"])
@@ -172,13 +176,13 @@ def quantiles(predictions):
             quantsTimestepTemp.append(np.quantile(predictions["t2m"][i::20], quant))
             quantsTimestepWind.append(np.quantile(predictions["wind"][i::20], quant))
             quantsTimestepPrecip.append(np.quantile(predictions["precip"][i::20], quant))
-        result = result.append(pd.Series(["2023-04-29", "t2m", str(horizon) + " hour", *quantsTimestepTemp], 
+        result = result.append(pd.Series(["2023-05-13", "t2m", str(horizon) + " hour", *quantsTimestepTemp], 
                                          index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]),
                                          ignore_index=True)
-        result = result.append(pd.Series(["2023-04-29", "wind", str(horizon) + " hour", *quantsTimestepWind], 
+        result = result.append(pd.Series(["2023-05-13", "wind", str(horizon) + " hour", *quantsTimestepWind], 
                                index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]), 
                                ignore_index=True)
-        result = result.append(pd.Series(["2023-04-29", "precip", str(horizon) + " hour", *quantsTimestepPrecip], 
+        result = result.append(pd.Series(["2023-05-13", "precip", str(horizon) + " hour", *quantsTimestepPrecip], 
                                index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]), 
                                ignore_index=True)
     return result
@@ -188,9 +192,9 @@ def cross_validation(model, input, target):
     kf = KFold(5, shuffle = True, random_state = 0)
     rmse = [[], []]
     for train_ind, val_ind in kf.split(input, target):
-        model.fit(input[train_ind], target[train_ind])
-        rmse[0].append(mean_squared_error(model.predict(input[train_ind]), target[train_ind])**0.5)
-        rmse[1].append(mean_squared_error(model.predict(input[val_ind]), target[val_ind])**0.5)
+        model.fit(input.iloc[train_ind], target.iloc[train_ind])
+        rmse[0].append(mean_squared_error(model.predict(input.iloc[train_ind]), target.iloc[train_ind])**0.5)
+        rmse[1].append(mean_squared_error(model.predict(input.iloc[val_ind]), target.iloc[val_ind])**0.5)
     return [np.mean(rmse[0]), np.mean(rmse[1])]
 
 def validation(model, input, target):
@@ -212,9 +216,9 @@ def trees(xTrain, yTrain):
         temperatureTree = tree.DecisionTreeRegressor(max_depth=depth)
         windTree = tree.DecisionTreeRegressor(max_depth=depth)
         precipTree = tree.DecisionTreeRegressor(max_depth=depth)
-        temp.extend(cross_validation(temperatureTree, xTrain, yTrain[:, 0]))
-        wind.extend(cross_validation(windTree, xTrain, yTrain[:, 2]))
-        precip.extend(cross_validation(precipTree, xTrain, yTrain[:, 3]))
+        temp.extend(cross_validation(temperatureTree, xTrain, yTrain[[0]]))
+        wind.extend(cross_validation(windTree, xTrain, yTrain[[2]]))
+        precip.extend(cross_validation(precipTree, xTrain, yTrain[[3]]))
     fig, axis = plt.subplots(1, 3)
     axis[0].plot(range(start, end), temp[::2])
     axis[0].plot(range(start, end), temp[1::2])
@@ -240,7 +244,7 @@ def trees(xTrain, yTrain):
     # best trees
     # temp: 11
     # wind: 13
-    # precip: 7
+    # precip: 8
 
 def randomForest(xTrain, yTrain):
     'experimental setup to find the best number of trees in the forest for all three target variables'
@@ -253,9 +257,9 @@ def randomForest(xTrain, yTrain):
         tempForest = RandomForestRegressor(number_trees, max_depth=11)
         windForest = RandomForestRegressor(number_trees, max_depth=13)
         precipForest = RandomForestRegressor(number_trees, max_depth=7)
-        temp.extend(validation(tempForest, xTrain, yTrain[:, 0]))
-        wind.extend(validation(windForest, xTrain, yTrain[:, 2]))
-        precip.extend(validation(precipForest, xTrain, yTrain[:, 3]))
+        temp.extend(validation(tempForest, xTrain, yTrain[[0]]))
+        wind.extend(validation(windForest, xTrain, yTrain[[2]]))
+        precip.extend(validation(precipForest, xTrain, yTrain[[3]]))
     fig, axis = plt.subplots(1, 3)
     axis[0].plot(range(start, end, 10), temp[::2])
     axis[0].plot(range(start, end, 10), temp[1::2])
@@ -284,27 +288,68 @@ def randomForest(xTrain, yTrain):
 
 def neuralNet(xTrain, yTrain):
     'experimental setup to find the best neural net architecture'
-    dimensions = [[8], [9, 6]]
+    dimensions = [[12, 9, 6], [12, 8]]
     losses = []
     validation = []
     for dimension in dimensions:
         neuralNet = MLPRegressor(dimension, early_stopping=True)
-        neuralNet.fit(xTrain, yTrain[:, [0, 2, 3]])
+        neuralNet.fit(xTrain, yTrain[[0, 2, 3]])
         losses.append(list(map(lambda x: x**0.5, neuralNet.loss_curve_))) 
         validation.append(neuralNet.validation_scores_)  
     fig, axis = plt.subplots(2, len(dimensions))
     for i in range(len(dimensions)):
         axis[i, 0].plot(losses[i])
-        axis[i, 0].set_title(f"Loss Architecture #{i}")
-        axis[i, 0].set_xlabel("Iterations")
-        axis[i, 0].set_ylabel("RMSE")
+        axis[i, 0].set_title(f"Loss Architecture " + str(dimensions[i]))
+        axis[i, 0].set_xlabel("Epochs")
+        axis[i, 0].set_ylabel("MSE")
         axis[i, 0].grid()
         axis[i, 1].plot(validation[i])
-        axis[i, 1].set_title(f"Validation score Architecture #{i}")
-        axis[i, 1].set_xlabel("Iterations")
+        axis[i, 1].set_title(f"Validation score Architecture " + str(dimensions[i]))
+        axis[i, 1].set_xlabel("Epochs")
         axis[i, 1].set_ylabel("R2 score")
         axis[i, 1].grid()
-    plt.savefig("neuralNet.pdf", format="pdf")
+    plt.savefig("neuralNet2.pdf", format="pdf")
     plt.show()
     # second architecture performs better
     # stopping at 18 iterations
+
+def bayRidge(xTrain, yTrain):
+    'experimental setup to find the best number of iterations for all three bayesian ridge models'
+    start = 1
+    end = 100
+    temp = []
+    wind = []
+    precip = []
+    for iters in range(start, end, 10):
+        temperatureBay = BayesianRidge(n_iter=iters)
+        windBay = BayesianRidge(n_iter=iters)
+        precipBay = BayesianRidge(n_iter=iters)
+        temp.extend(cross_validation(temperatureBay, xTrain, yTrain[[0]]))
+        wind.extend(cross_validation(windBay, xTrain, yTrain[[2]]))
+        precip.extend(cross_validation(precipBay, xTrain, yTrain[[3]]))
+    fig, axis = plt.subplots(1, 3)
+    axis[0].plot(range(start, end, 10), temp[::2])
+    axis[0].plot(range(start, end, 10), temp[1::2])
+    axis[0].set_title("Temperature")
+    axis[0].set_xlabel("No. iterations")
+    axis[0].set_ylabel("RMSE")
+
+    axis[1].plot(range(start, end, 10), wind[::2])
+    axis[1].plot(range(start, end, 10), wind[1::2])
+    axis[1].set_title("Wind speed")
+    axis[1].set_xlabel("No. iterations")
+
+    axis[2].plot(range(start, end, 10), precip[::2])
+    axis[2].plot(range(start, end, 10), precip[1::2])
+    axis[2].set_title("Precipitation")
+    axis[2].set_xlabel("No. iterations")
+
+    axis[0].grid()
+    axis[1].grid()
+    axis[2].grid()
+    plt.savefig("bayRidge.pdf", format="pdf", bbox_inches="tight")
+    plt.show()
+    # best trees
+    # temp: 11
+    # wind: 13
+    # precip: 7

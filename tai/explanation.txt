@@ -1,2 +1,2 @@
-For this submission I used decision tree regressors, one for each output variable. The depth of the trees was determined by comparing rmse in train and validation set for each tree for different depths and taking the best performing.
-As input, time series composed of the previous, the current and the future value were used. All 50 inputs of an ensemble were processed individually, thus obtaining also 50 outputs. Out of these, I calculated the quantiles.
+For this submission I compared the performance of tree regressors, random forests and a neural network. Firstly, the best trees/forests/neural net were determined using validation. Evaluation on the test set using rmse accreditted the best performance to the random forest models for all three target variables.
+Thus, the results submitted for this week are the predictions of three random forest models. 
