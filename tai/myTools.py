@@ -8,6 +8,7 @@ from sklearn import preprocessing
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
+from sklearn.linear_model import BayesianRidge
 import pickle
 import matplotlib.pyplot as plt
 
@@ -191,9 +192,9 @@ def cross_validation(model, input, target):
     kf = KFold(5, shuffle = True, random_state = 0)
     rmse = [[], []]
     for train_ind, val_ind in kf.split(input, target):
-        model.fit(input[train_ind], target[train_ind])
-        rmse[0].append(mean_squared_error(model.predict(input[train_ind]), target[train_ind])**0.5)
-        rmse[1].append(mean_squared_error(model.predict(input[val_ind]), target[val_ind])**0.5)
+        model.fit(input.iloc[train_ind], target.iloc[train_ind])
+        rmse[0].append(mean_squared_error(model.predict(input.iloc[train_ind]), target.iloc[train_ind])**0.5)
+        rmse[1].append(mean_squared_error(model.predict(input.iloc[val_ind]), target.iloc[val_ind])**0.5)
     return [np.mean(rmse[0]), np.mean(rmse[1])]
 
 def validation(model, input, target):
@@ -243,7 +244,7 @@ def trees(xTrain, yTrain):
     # best trees
     # temp: 11
     # wind: 13
-    # precip: 7
+    # precip: 8
 
 def randomForest(xTrain, yTrain):
     'experimental setup to find the best number of trees in the forest for all three target variables'
@@ -287,7 +288,7 @@ def randomForest(xTrain, yTrain):
 
 def neuralNet(xTrain, yTrain):
     'experimental setup to find the best neural net architecture'
-    dimensions = [[8], [9, 6]]
+    dimensions = [[12, 9, 6], [12, 8]]
     losses = []
     validation = []
     for dimension in dimensions:
@@ -298,16 +299,57 @@ def neuralNet(xTrain, yTrain):
     fig, axis = plt.subplots(2, len(dimensions))
     for i in range(len(dimensions)):
         axis[i, 0].plot(losses[i])
-        axis[i, 0].set_title(f"Loss Architecture #{i}")
-        axis[i, 0].set_xlabel("Iterations")
-        axis[i, 0].set_ylabel("RMSE")
+        axis[i, 0].set_title(f"Loss Architecture " + str(dimensions[i]))
+        axis[i, 0].set_xlabel("Epochs")
+        axis[i, 0].set_ylabel("MSE")
         axis[i, 0].grid()
         axis[i, 1].plot(validation[i])
-        axis[i, 1].set_title(f"Validation score Architecture #{i}")
-        axis[i, 1].set_xlabel("Iterations")
+        axis[i, 1].set_title(f"Validation score Architecture " + str(dimensions[i]))
+        axis[i, 1].set_xlabel("Epochs")
         axis[i, 1].set_ylabel("R2 score")
         axis[i, 1].grid()
-    plt.savefig("neuralNet.pdf", format="pdf")
+    plt.savefig("neuralNet2.pdf", format="pdf")
     plt.show()
     # second architecture performs better
     # stopping at 18 iterations
+
+def bayRidge(xTrain, yTrain):
+    'experimental setup to find the best number of iterations for all three bayesian ridge models'
+    start = 1
+    end = 100
+    temp = []
+    wind = []
+    precip = []
+    for iters in range(start, end, 10):
+        temperatureBay = BayesianRidge(n_iter=iters)
+        windBay = BayesianRidge(n_iter=iters)
+        precipBay = BayesianRidge(n_iter=iters)
+        temp.extend(cross_validation(temperatureBay, xTrain, yTrain[[0]]))
+        wind.extend(cross_validation(windBay, xTrain, yTrain[[2]]))
+        precip.extend(cross_validation(precipBay, xTrain, yTrain[[3]]))
+    fig, axis = plt.subplots(1, 3)
+    axis[0].plot(range(start, end, 10), temp[::2])
+    axis[0].plot(range(start, end, 10), temp[1::2])
+    axis[0].set_title("Temperature")
+    axis[0].set_xlabel("No. iterations")
+    axis[0].set_ylabel("RMSE")
+
+    axis[1].plot(range(start, end, 10), wind[::2])
+    axis[1].plot(range(start, end, 10), wind[1::2])
+    axis[1].set_title("Wind speed")
+    axis[1].set_xlabel("No. iterations")
+
+    axis[2].plot(range(start, end, 10), precip[::2])
+    axis[2].plot(range(start, end, 10), precip[1::2])
+    axis[2].set_title("Precipitation")
+    axis[2].set_xlabel("No. iterations")
+
+    axis[0].grid()
+    axis[1].grid()
+    axis[2].grid()
+    plt.savefig("bayRidge.pdf", format="pdf", bbox_inches="tight")
+    plt.show()
+    # best trees
+    # temp: 11
+    # wind: 13
+    # precip: 7
