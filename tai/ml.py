@@ -10,6 +10,10 @@ import pickle
 input = pd.read_csv("InputNotScaled.csv", header=None)
 target = pd.read_csv("TargetNotScaled.csv", header=None)
 
+# setup for plotting
+models = "tempTree windTree precipTree tempForest windForest precipForest tempNN windNN precipNN tempBR windBR precipBR".split()
+rmses = []
+
 # extract distinct test set, not to be touched
 xTrain, xTest, yTrain, yTest = train_test_split(input, target, test_size=0.1, random_state = 0, shuffle=True)
 
@@ -24,17 +28,14 @@ yTrainNN[yTrainNN.columns] = targetNNScaler.fit_transform(yTrainNN)
 # pickle.dump(inputScaler, open("inputScaler", "wb"))
 # pickle.dump(targetNNScaler, open("targetNNScaler", "wb"))
 
-# print(np.array(yTrainNN.iloc[0]))
-# trees(xTrain, yTrain)
-# randomForest(xTrain, yTrain)
-# neuralNet(xTrain, yTrainNN)
-# bayRidge(xTrain, yTrain)
+# call these functions to find the best hyperparameters for each model in an experimental setup
+trees(xTrain, yTrain)
+randomForest(xTrain, yTrain)
+neuralNet(xTrain, yTrainNN)
+bayRidge(xTrain, yTrain)
 
 
-# create best models
-models = "tempTree windTree precipTree tempForest windForest precipForest tempNN windNN precipNN tempBR windBR precipBR".split()
-rmses = []
-
+# create best models - uncomment to train the models
 # # trees
 # tempTree = tree.DecisionTreeRegressor(max_depth=11)
 # tempTree.fit(xTrain, yTrain[[0]])
@@ -88,7 +89,7 @@ rmses = []
 # pickle.dump(brWind, open("brWind", "wb"))
 # pickle.dump(brPrecip, open("brPrecip", "wb"))
 
-# load models
+# load models that were previously saved
 tempTree = pickle.load(open("tempTree", "rb"))
 windTree = pickle.load(open("windTree", "rb"))
 precipTree = pickle.load(open("precipTree", "rb"))
@@ -99,6 +100,8 @@ nn = pickle.load(open("nn", "rb"))
 brTemp = pickle.load(open("brTemp", "rb"))
 brWind = pickle.load(open("brWind", "rb"))
 brPrecip = pickle.load(open("brPrecip", "rb"))
+
+# make predictions on test data and calculate rmses
 pred = tempTree.predict(xTest)
 rmses.append(mean_squared_error(pred, yTest[[0]])**0.5)
 pred = windTree.predict(xTest)
@@ -122,8 +125,6 @@ pred = brWind.predict(xTest)
 rmses.append(mean_squared_error(pred, yTest[[2]])**0.5)
 pred = brPrecip.predict(xTest)
 rmses.append(mean_squared_error(pred, yTest[[3]])**0.5)
-
-
 
 #plot rmses 
 fig = plt.figure()
