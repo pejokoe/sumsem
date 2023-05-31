@@ -176,13 +176,13 @@ def quantiles(predictions):
             quantsTimestepTemp.append(np.quantile(predictions["t2m"][i::20], quant))
             quantsTimestepWind.append(np.quantile(predictions["wind"][i::20], quant))
             quantsTimestepPrecip.append(np.quantile(predictions["precip"][i::20], quant))
-        result = result.append(pd.Series(["2023-05-13", "t2m", str(horizon) + " hour", *quantsTimestepTemp], 
+        result = result.append(pd.Series(["2023-05-06", "t2m", str(horizon) + " hour", *quantsTimestepTemp], 
                                          index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]),
                                          ignore_index=True)
-        result = result.append(pd.Series(["2023-05-13", "wind", str(horizon) + " hour", *quantsTimestepWind], 
+        result = result.append(pd.Series(["2023-05-06", "wind", str(horizon) + " hour", *quantsTimestepWind], 
                                index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]), 
                                ignore_index=True)
-        result = result.append(pd.Series(["2023-05-13", "precip", str(horizon) + " hour", *quantsTimestepPrecip], 
+        result = result.append(pd.Series(["2023-05-06", "precip", str(horizon) + " hour", *quantsTimestepPrecip], 
                                index=["forecast_date", "target", "horizon", "q0.025", "q0.25", "q0.5", "q0.75", "q0.975"]), 
                                ignore_index=True)
     return result
@@ -349,7 +349,3 @@ def bayRidge(xTrain, yTrain):
     axis[2].grid()
     plt.savefig("bayRidge.pdf", format="pdf", bbox_inches="tight")
     plt.show()
-    # best trees
-    # temp: 11
-    # wind: 13
-    # precip: 7

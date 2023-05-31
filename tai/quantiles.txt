@@ -1,0 +1,18 @@
+\begin{longtable}{llllrrrrr}
+\toprule
+{} & forecast\_date &  target &  horizon &  q0.025 &  q0.25 &   q0.5 &  q0.75 &  q0.975 \\
+\midrule
+\endhead
+\midrule
+\multicolumn{9}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+0 &    2023-05-06 &     t2m &   6 hour &  10.600 & 10.774 & 11.141 & 11.709 &  12.045 \\
+1 &    2023-05-06 &    wind &   6 hour &   2.130 &  2.338 &  2.359 &  2.387 &   2.708 \\
+2 &    2023-05-06 &  precip &   6 hour &   0.026 &  0.046 &  0.069 &  0.119 &   0.294 \\
+3 &    2023-05-06 &     t2m &  12 hour &  15.269 & 17.981 & 18.142 & 19.127 &  19.839 \\
+4 &    2023-05-06 &    wind &  12 hour &   2.848 &  3.045 &  3.308 &  3.721 &   3.950 \\
+\end{longtable}

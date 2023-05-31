@@ -10,6 +10,10 @@ import pickle
 input = pd.read_csv("InputNotScaled.csv", header=None)
 target = pd.read_csv("TargetNotScaled.csv", header=None)
 
+# setup for plotting
+models = "tempTree windTree precipTree tempForest windForest precipForest tempNN windNN precipNN tempBR windBR precipBR".split()
+rmses = []
+
 # extract distinct test set, not to be touched
 xTrain, xTest, yTrain, yTest = train_test_split(input, target, test_size=0.1, random_state = 0, shuffle=True)
 
@@ -24,17 +28,14 @@ yTrainNN[yTrainNN.columns] = targetNNScaler.fit_transform(yTrainNN)
 # pickle.dump(inputScaler, open("inputScaler", "wb"))
 # pickle.dump(targetNNScaler, open("targetNNScaler", "wb"))
 
-# print(np.array(yTrainNN.iloc[0]))
-# trees(xTrain, yTrain)
-# randomForest(xTrain, yTrain)
+# call these functions to find the best hyperparameters for each model in an experimental setup
+trees(xTrain, yTrain)
+randomForest(xTrain, yTrain)
 neuralNet(xTrain, yTrainNN)
-# bayRidge(xTrain, yTrain)
+bayRidge(xTrain, yTrain)
 
 
-# create best models
-models = "tempTree windTree precipTree tempForest windForest precipForest tempNN windNN precipNN tempBR windBR precipBR".split()
-rmses = []
-
+# create best models - uncomment to train the models
 # # trees
 # tempTree = tree.DecisionTreeRegressor(max_depth=11)
 # tempTree.fit(xTrain, yTrain[[0]])
@@ -59,7 +60,7 @@ rmses = []
 # rmses.append(mean_squared_error(precipForest.predict(xTest), yTest[[3]])**0.5)
 # print("done with forests")
 
-# # # neural net
+# # neural net
 # nn = MLPRegressor([12, 9, 6], max_iter=18)
 # nn.fit(xTrain, yTrainNN[[0, 2, 3]])
 # pred = targetNNScaler.inverse_transform(nn.predict(xTest))
@@ -88,50 +89,50 @@ rmses = []
 # pickle.dump(brWind, open("brWind", "wb"))
 # pickle.dump(brPrecip, open("brPrecip", "wb"))
 
-# # load models
-# tempTree = pickle.load(open("tempTree", "rb"))
-# windTree = pickle.load(open("windTree", "rb"))
-# precipTree = pickle.load(open("precipTree", "rb"))
-# tempForest = pickle.load(open("tempForest", "rb"))
-# windForest = pickle.load(open("windForest", "rb"))
-# precipForest = pickle.load(open("precipForest", "rb"))
-# # nn = pickle.load(open("nn", "rb"))
-# brTemp = pickle.load(open("brTemp", "rb"))
-# brWind = pickle.load(open("brWind", "rb"))
-# brPrecip = pickle.load(open("brPrecip", "rb"))
-# pred = tempTree.predict(xTest)
-# rmses.append(mean_squared_error(pred, yTest[[0]])**0.5)
-# pred = windTree.predict(xTest)
-# rmses.append(mean_squared_error(pred, yTest[[2]])**0.5)
-# pred = precipTree.predict(xTest)
-# rmses.append(mean_squared_error(pred, yTest[[3]])**0.5)
-# pred = tempForest.predict(xTest)
-# rmses.append(mean_squared_error(pred, yTest[[0]])**0.5)
-# pred = windForest.predict(xTest)
-# rmses.append(mean_squared_error(pred, yTest[[2]])**0.5)
-# pred = precipForest.predict(xTest)
-# rmses.append(mean_squared_error(pred, yTest[[3]])**0.5)
-# pred = nn.predict(xTest)
-# pred = targetNNScaler.inverse_transform(nn.predict(xTest))
-# rmses.append(mean_squared_error(pred[:, 0], yTest[[0]])**0.5)
-# rmses.append(mean_squared_error(pred[:, 1], yTest[[2]])**0.5)
-# rmses.append(mean_squared_error(pred[:, 2], yTest[[3]])**0.5)
-# pred = brTemp.predict(xTest)
-# rmses.append(mean_squared_error(pred, yTest[[0]])**0.5)
-# pred = brWind.predict(xTest)
-# rmses.append(mean_squared_error(pred, yTest[[2]])**0.5)
-# pred = brPrecip.predict(xTest)
-# rmses.append(mean_squared_error(pred, yTest[[3]])**0.5)
+# load models that were previously saved
+tempTree = pickle.load(open("tempTree", "rb"))
+windTree = pickle.load(open("windTree", "rb"))
+precipTree = pickle.load(open("precipTree", "rb"))
+tempForest = pickle.load(open("tempForest", "rb"))
+windForest = pickle.load(open("windForest", "rb"))
+precipForest = pickle.load(open("precipForest", "rb"))
+nn = pickle.load(open("nn", "rb"))
+brTemp = pickle.load(open("brTemp", "rb"))
+brWind = pickle.load(open("brWind", "rb"))
+brPrecip = pickle.load(open("brPrecip", "rb"))
 
+# make predictions on test data and calculate rmses
+pred = tempTree.predict(xTest)
+rmses.append(mean_squared_error(pred, yTest[[0]])**0.5)
+pred = windTree.predict(xTest)
+rmses.append(mean_squared_error(pred, yTest[[2]])**0.5)
+pred = precipTree.predict(xTest)
+rmses.append(mean_squared_error(pred, yTest[[3]])**0.5)
+pred = tempForest.predict(xTest)
+rmses.append(mean_squared_error(pred, yTest[[0]])**0.5)
+pred = windForest.predict(xTest)
+rmses.append(mean_squared_error(pred, yTest[[2]])**0.5)
+pred = precipForest.predict(xTest)
+rmses.append(mean_squared_error(pred, yTest[[3]])**0.5)
+pred = nn.predict(xTest)
+pred = targetNNScaler.inverse_transform(nn.predict(xTest))
+rmses.append(mean_squared_error(pred[:, 0], yTest[[0]])**0.5)
+rmses.append(mean_squared_error(pred[:, 1], yTest[[2]])**0.5)
+rmses.append(mean_squared_error(pred[:, 2], yTest[[3]])**0.5)
+pred = brTemp.predict(xTest)
+rmses.append(mean_squared_error(pred, yTest[[0]])**0.5)
+pred = brWind.predict(xTest)
+rmses.append(mean_squared_error(pred, yTest[[2]])**0.5)
+pred = brPrecip.predict(xTest)
+rmses.append(mean_squared_error(pred, yTest[[3]])**0.5)
 
-
-# #plot rmses 
-# fig = plt.figure()
-# plt.bar(models, rmses, color=["orange", "orange", "orange", "deepskyblue", "deepskyblue", "deepskyblue", "grey", "grey", "grey", "black", "black", "black"])
-# plt.ylabel("RMSE")
-# plt.xlabel("Model")
-# plt.title("RMSEs model comparison")
-# plt.grid()
-# plt.show()
+#plot rmses 
+fig = plt.figure()
+plt.bar(models, rmses, color=["orange", "orange", "orange", "deepskyblue", "deepskyblue", "deepskyblue", "grey", "grey", "grey", "black", "black", "black"])
+plt.ylabel("RMSE")
+plt.xlabel("Model")
+plt.title("RMSEs model comparison")
+plt.grid()
+plt.show()
 
 
